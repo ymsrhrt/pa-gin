@@ -102,7 +102,7 @@ body{font-family:'Hiragino Sans','Yu Gothic',sans-serif;background:#F5F4F0;min-h
 </style>
 </head>
 <body>
- 
+
 <div class="header">
   <div class="header-inner">
     <div>
@@ -120,14 +120,14 @@ body{font-family:'Hiragino Sans','Yu Gothic',sans-serif;background:#F5F4F0;min-h
     <button class="retry-btn" onclick="loadAll()">再試行</button>
   </div>
 </div>
- 
+
 <div class="content" id="content">
   <div class="grid">
     <div class="skeleton"></div><div class="skeleton"></div>
     <div class="skeleton"></div><div class="skeleton"></div>
   </div>
 </div>
- 
+
 <div class="bottom-nav">
   <button class="nav-btn" id="nav-home" onclick="navigate('home')" style="color:#F97316">
     <span class="nav-icon">🏠</span><span class="nav-label">ホーム</span>
@@ -145,21 +145,21 @@ body{font-family:'Hiragino Sans','Yu Gothic',sans-serif;background:#F5F4F0;min-h
     <span class="nav-icon">🔄</span><span class="nav-label">更新</span>
   </button>
 </div>
- 
+
 <script>
 const GAS_URL = "https://script.google.com/macros/s/AKfycbx6yYPIDR4UuijPl2QUuQQm1Uv0lNBo3U4_cDIz5vK85oBE2_FHZU-e5WdXiF3RNbUi/exec";
- 
+
 const SONS = [
-  {id:"yota",name:"陽汰",kanji:"長男",emoji:"🌞",color:"#F97316",interestLabel:"月利10%",colDate:1,colIncome:2,colWithdraw:3,colBalance:5,colProfit:6,hasWithdraw:true},
-  {id:"sota",name:"蒼汰",kanji:"次男",emoji:"🌤️",color:"#3B82F6",interestLabel:"月利10%",colDate:8,colIncome:9,colWithdraw:10,colBalance:12,colProfit:13,hasWithdraw:false},
-  {id:"ryota",name:"涼汰",kanji:"三男",emoji:"🍃",color:"#06B6D4",interestLabel:"週利5%+BI¥100",colDate:15,colIncome:16,colWithdraw:17,colBalance:18,colProfit:19,hasWithdraw:false},
+  {id:"yota",name:"陽汰",kanji:"長男",emoji:"🌞",color:"#EF4444",interestLabel:"月利10%",colDate:1,colIncome:2,colWithdraw:3,colBalance:5,colProfit:6,hasWithdraw:true},
+  {id:"sota",name:"蒼汰",kanji:"次男",emoji:"🩵",color:"#3B82F6",interestLabel:"月利10%",colDate:8,colIncome:9,colWithdraw:10,colBalance:12,colProfit:13,hasWithdraw:false},
+  {id:"ryota",name:"涼汰",kanji:"三男",emoji:"🍃",color:"#22C55E",interestLabel:"週利5%+BI¥100",colDate:15,colIncome:16,colWithdraw:17,colBalance:18,colProfit:19,hasWithdraw:false},
   {id:"aita",name:"藍汰",kanji:"四男",emoji:"🌊",color:"#8B5CF6",interestLabel:"週利5%",colDate:21,colIncome:22,colWithdraw:23,colBalance:24,colProfit:25,hasWithdraw:false},
 ];
- 
+
 const WMIN=2000, WRATIO=0.20;
 let sonData={}, laborData={}, laborJisseki={}, mainLoading=true, laborLoading=true;
 let currentTab="home", selectedSon=null, detailTab="hist", laborTab="jisseki";
- 
+
 function parseNum(v){
   if(v===null||v===undefined||v==="")return 0;
   const s=String(v).replace(/[¥,\s￥]/g,"").replace(/#N\/A|#REF!|#VALUE!|#NAME\?/g,"0");
@@ -170,7 +170,7 @@ function fmtDate(v){
   if(s.includes("T")){const d=new Date(s);if(!isNaN(d))return`${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,"0")}/${String(d.getDate()).padStart(2,"0")}`;}
   return s.replace(/"/g,"").trim();
 }
- 
+
 function fetchSheet(sheetName){
   return new Promise((resolve,reject)=>{
     const cb="__gasCB_"+Date.now()+"_"+Math.random().toString(36).slice(2);
@@ -183,7 +183,7 @@ function fetchSheet(sheetName){
     document.head.appendChild(sc);
   });
 }
- 
+
 function extractSonData(rows,son){
   const txs=[];let latestBal=0;
   const now=new Date(),ws=new Date(now);ws.setDate(now.getDate()-now.getDay());ws.setHours(0,0,0,0);
@@ -200,7 +200,7 @@ function extractSonData(rows,son){
   const we=txs.filter(t=>{const d=new Date(t.date.replace(/\//g,"-"));return d>=ws&&t.income>0&&t.profit===0;}).reduce((s,t)=>s+t.income,0);
   return{balance:latestBal,weeklyEarnings:we,transactions:[...txs].reverse().slice(0,50)};
 }
- 
+
 function extractLaborData(rows){
   const res={yota:0,sota:0,ryota:0,aita:0};
   const n2id={"陽汰":"yota","蒼汰":"sota","涼汰":"ryota","藍汰":"aita"};
@@ -218,7 +218,7 @@ function extractLaborData(rows){
   }
   return res;
 }
- 
+
 async function loadMain(){
   mainLoading=true;render();
   document.getElementById("errorBar").style.display="none";
@@ -235,7 +235,7 @@ async function loadMain(){
     document.getElementById("totalAmt").textContent="---";
   }finally{mainLoading=false;render();}
 }
- 
+
 async function loadLabor(){
   laborLoading=true;
   try{
@@ -249,7 +249,7 @@ async function loadLabor(){
   laborLoading=false;
   if(currentTab==="ranking"||currentTab==="labor")render();
 }
- 
+
 function extractLaborJisseki(rows){
   const result={};
   // 列位置固定（B=1, M=12, X=23, AI=34）
@@ -309,16 +309,16 @@ function extractLaborJisseki(rows){
   });
   return result;
 }
- 
+
 function loadAll(){loadMain();loadLabor();}
- 
+
 function navigate(tab){
   currentTab=tab;selectedSon=null;detailTab="hist";
   document.querySelectorAll(".nav-btn").forEach(b=>b.style.color="");
   const nb=document.getElementById("nav-"+tab);if(nb)nb.style.color="#F97316";
   render();
 }
- 
+
 function render(){
   const el=document.getElementById("content");
   if(currentTab==="home"){el.innerHTML=selectedSon?renderDetail(selectedSon):renderHome();}
@@ -326,12 +326,12 @@ function render(){
   else if(currentTab==="labor"){el.innerHTML=renderLabor();}
   else if(currentTab==="rules"){el.innerHTML=renderRules();}
 }
- 
+
 function renderHome(){
   if(mainLoading)return`<div class="grid"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></div>`;
   return`<div class="grid page">${SONS.map(s=>renderCard(s)).join("")}</div>`;
 }
- 
+
 function renderCard(son){
   const d=sonData[son.id],bal=d?.balance??0,ok=bal>=WMIN,we=d?.weeklyEarnings??0;
   return`<div class="son-card" onclick="selectSon('${son.id}')" style="border-color:${son.color}25;box-shadow:0 2px 12px ${son.color}10">
@@ -349,11 +349,11 @@ function renderCard(son){
     <div class="card-hint">詳細 →</div>
   </div>`;
 }
- 
+
 function selectSon(id){selectedSon=SONS.find(s=>s.id===id);detailTab="hist";render();}
 function backToHome(){selectedSon=null;render();}
 function switchTab(t){detailTab=t;render();}
- 
+
 function renderDetail(son){
   const d=sonData[son.id],bal=d?.balance??0,txs=d?.transactions??[];
   const ok=bal>=WMIN,max=ok?Math.floor(bal*WRATIO):0,we=d?.weeklyEarnings??0;
@@ -401,62 +401,121 @@ function renderDetail(son){
     ${body}
   </div>`;
 }
- 
+
 function drawLine(data,color){
   const c=document.getElementById("lineC");if(!c||data.length<2)return;
   const W=c.parentElement.clientWidth-16||340,H=200;c.width=W;c.height=H;
-  const ctx=c.getContext("2d"),pad={t:10,r:10,b:30,l:55};
-  const vals=data.map(d=>d.balance),minV=Math.min(...vals),maxV=Math.max(...vals),rng=maxV-minV||1;
+  const ctx=c.getContext("2d"),pad={t:10,r:10,b:30,l:62};
+  const vals=data.map(d=>d.balance),maxV=Math.max(...vals),minV=0;
+  // 1,000円単位できれいな目盛りを計算
+  const step1k=Math.ceil(maxV/4/1000)*1000||1000;
+  const topV=Math.ceil(maxV/step1k)*step1k;
+  const ticks=[];for(let v=0;v<=topV;v+=step1k)ticks.push(v);
   const xp=i=>pad.l+(i/(data.length-1))*(W-pad.l-pad.r);
-  const yp=v=>pad.t+(1-(v-minV)/rng)*(H-pad.t-pad.b);
+  const yp=v=>pad.t+(1-v/topV)*(H-pad.t-pad.b);
+  // グリッド線と縦軸ラベル
   ctx.strokeStyle="#E5E7EB";ctx.lineWidth=1;
-  for(let i=0;i<4;i++){const y=pad.t+i*(H-pad.t-pad.b)/3;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();ctx.fillStyle="#9CA3AF";ctx.font="9px sans-serif";ctx.textAlign="right";ctx.fillText("¥"+Math.round((maxV-i*rng/3)/1000)+"k",pad.l-3,y+3);}
+  ticks.forEach(v=>{
+    const y=yp(v);
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+    ctx.fillStyle="#9CA3AF";ctx.font="9px sans-serif";ctx.textAlign="right";
+    ctx.fillText(v===0?"¥0":"¥"+v.toLocaleString(),pad.l-4,y+3);
+  });
+  // X軸ラベル
   const step=Math.max(1,Math.floor(data.length/5));
   ctx.fillStyle="#9CA3AF";ctx.font="8px sans-serif";ctx.textAlign="center";
   data.forEach((d,i)=>{if(i%step===0||i===data.length-1)ctx.fillText(d.date.slice(5),xp(i),H-4);});
+  // 折れ線
   ctx.beginPath();ctx.moveTo(xp(0),yp(data[0].balance));
   data.forEach((d,i)=>{if(i>0)ctx.lineTo(xp(i),yp(d.balance));});
   ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.lineJoin="round";ctx.stroke();
 }
- 
+
+// 指定カラー上書き（ランキング用）
+const RANK_COLORS={yota:"#EF4444",sota:"#3B82F6",ryota:"#22C55E",aita:"#8B5CF6"};
+
 function renderRanking(){
   const wd=Object.fromEntries(SONS.map(s=>[s.id,sonData[s.id]?.weeklyEarnings??0]));
-  const rd=SONS.map(s=>({...s,amount:wd[s.id]||laborData[s.id]||0})).sort((a,b)=>b.amount-a.amount);
+  const rd=SONS.map(s=>({...s,color:RANK_COLORS[s.id],amount:wd[s.id]||laborData[s.id]||0})).sort((a,b)=>b.amount-a.amount);
   const mx=Math.max(...rd.map(d=>d.amount),1);
   const medals=["🥇","🥈","🥉","4️⃣"];
   if(mainLoading||laborLoading)return`<div class="page"><div class="loading-msg">読み込み中...</div></div>`;
   return`<div class="page">
-    <div style="margin-bottom:16px"><div style="font-size:17px;font-weight:900;color:#1a1a1a">🏆 今週の労働ランキング</div><div style="font-size:11px;color:#aaa">毎週土曜日に発表！家庭内労働の集計</div></div>
-    <div class="bar-chart-wrap"><canvas id="barC" style="width:100%;display:block;height:160px"></canvas></div>
+    <div style="margin-bottom:12px"><div style="font-size:17px;font-weight:900;color:#1a1a1a">🏆 残高バトル！</div><div style="font-size:11px;color:#aaa">誰が一番貯めてる？</div></div>
+    <div class="bar-chart-wrap">
+      <div style="display:flex;gap:10px;justify-content:center;margin-bottom:8px;flex-wrap:wrap">
+        ${SONS.map(s=>`<div style="display:flex;align-items:center;gap:4px"><div style="width:12px;height:3px;border-radius:2px;background:${RANK_COLORS[s.id]}"></div><span style="font-size:10px;color:#374151;font-weight:700">${s.emoji}${s.name}</span></div>`).join("")}
+      </div>
+      <canvas id="barC" style="width:100%;display:block;height:200px"></canvas>
+    </div>
+    <div style="margin-bottom:12px;margin-top:4px"><div style="font-size:14px;font-weight:900;color:#1a1a1a">🛠️ 今週の労働</div></div>
     <div class="rank-list">${rd.map((d,i)=>`
       <div class="rank-row ${i===0?"first":""}">
         <span class="rank-medal">${medals[i]}</span><span style="font-size:20px">${d.emoji}</span>
-        <div class="rank-bar-wrap"><div class="rank-name">${d.name}</div><div class="rank-bar-bg"><div class="rank-bar-fill" style="width:${(d.amount/mx)*100}%;background:${d.color}"></div></div></div>
+        <div class="rank-bar-wrap"><div class="rank-name" style="color:${d.color}">${d.name}</div><div class="rank-bar-bg"><div class="rank-bar-fill" style="width:${(d.amount/mx)*100}%;background:${d.color}"></div></div></div>
         <div class="rank-amt" style="color:${d.color}">¥${d.amount.toLocaleString()}</div>
       </div>`).join("")}
     </div>
   </div>`;
 }
- 
+
 function drawBarChart(){
   setTimeout(()=>{
     const c=document.getElementById("barC");if(!c)return;
-    const wd=Object.fromEntries(SONS.map(s=>[s.id,sonData[s.id]?.weeklyEarnings??0]));
-    const rd=SONS.map(s=>({...s,amount:wd[s.id]||laborData[s.id]||0})).sort((a,b)=>b.amount-a.amount);
-    const W=c.parentElement.clientWidth-16||340,H=160;c.width=W;c.height=H;
-    const ctx=c.getContext("2d"),pad={t:16,r:8,b:28,l:8},mx=Math.max(...rd.map(d=>d.amount),1),bw=(W-pad.l-pad.r)/rd.length;
+    const W=c.parentElement.clientWidth-16||340,H=200;c.width=W;c.height=H;
+    const ctx=c.getContext("2d"),pad={t:10,r:10,b:30,l:62};
+    // 全員の残高推移データを取得
+    const allData=SONS.map(s=>({
+      son:s,
+      color:RANK_COLORS[s.id],
+      points:[...(sonData[s.id]?.transactions??[])].reverse().filter(t=>t.balance>0),
+    })).filter(d=>d.points.length>0);
+    if(allData.length===0)return;
+    // 全ポイントの最大値
+    const allVals=allData.flatMap(d=>d.points.map(p=>p.balance));
+    const maxV=Math.max(...allVals,1);
+    const step1k=Math.ceil(maxV/4/1000)*1000||1000;
+    const topV=Math.ceil(maxV/step1k)*step1k;
+    const ticks=[];for(let v=0;v<=topV;v+=step1k)ticks.push(v);
+    // 日付の全ユニーク一覧（X軸）
+    const allDates=[...new Set(allData.flatMap(d=>d.points.map(p=>p.date)))].sort();
+    const xp=i=>pad.l+(i/(allDates.length-1||1))*(W-pad.l-pad.r);
+    const yp=v=>pad.t+(1-v/topV)*(H-pad.t-pad.b);
     ctx.clearRect(0,0,W,H);
-    rd.forEach((d,i)=>{
-      const bh=Math.max((d.amount/mx)*(H-pad.t-pad.b),d.amount>0?2:0);
-      const x=pad.l+i*bw+bw*0.15,y=H-pad.b-bh,w=bw*0.7;
-      ctx.fillStyle=d.color;ctx.beginPath();
-      ctx.roundRect?ctx.roundRect(x,y,w,bh,4):ctx.rect(x,y,w,bh);ctx.fill();
-      ctx.fillStyle="#374151";ctx.font="bold 13px sans-serif";ctx.textAlign="center";ctx.fillText(d.name,x+w/2,H-4);
-      if(d.amount>0){ctx.font="9px sans-serif";ctx.fillText("¥"+d.amount.toLocaleString(),x+w/2,y-3);}
+    // グリッドと縦軸
+    ctx.strokeStyle="#E5E7EB";ctx.lineWidth=1;
+    ticks.forEach(v=>{
+      const y=yp(v);
+      ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(W-pad.r,y);ctx.stroke();
+      ctx.fillStyle="#9CA3AF";ctx.font="9px sans-serif";ctx.textAlign="right";
+      ctx.fillText(v===0?"¥0":"¥"+v.toLocaleString(),pad.l-4,y+3);
+    });
+    // X軸ラベル
+    const step=Math.max(1,Math.floor(allDates.length/5));
+    ctx.fillStyle="#9CA3AF";ctx.font="8px sans-serif";ctx.textAlign="center";
+    allDates.forEach((d,i)=>{if(i%step===0||i===allDates.length-1)ctx.fillText(d.slice(5),xp(i),H-4);});
+    // 各息子の折れ線
+    allData.forEach(({points,color})=>{
+      ctx.beginPath();
+      let started=false;
+      allDates.forEach((date,i)=>{
+        const pt=points.find(p=>p.date===date);
+        if(!pt)return;
+        const x=xp(i),y=yp(pt.balance);
+        if(!started){ctx.moveTo(x,y);started=true;}else{ctx.lineTo(x,y);}
+      });
+      ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.lineJoin="round";ctx.stroke();
+      // 最新点に丸を付ける
+      const last=points[points.length-1];
+      const lastIdx=allDates.indexOf(last.date);
+      if(lastIdx>=0){
+        ctx.beginPath();ctx.arc(xp(lastIdx),yp(last.balance),4,0,Math.PI*2);
+        ctx.fillStyle=color;ctx.fill();
+      }
     });
   },60);
 }
- 
+
 function renderLabor(){
   const PRICE_JOBS=[
     {name:"🍽️ キッチン片づけ", prices:[54,179,269,358]},
@@ -466,10 +525,10 @@ function renderLabor(){
     {name:"⚔️ 討伐",            prices:[100,100,100,100]},
   ];
   const RANKS=["見習","2級","1級","SA"];
- 
+
   const tabs=[["jisseki","📋 労働実績"],["price","💰 単価表"]];
   let body="";
- 
+
   if(laborLoading){
     body=`<div class="loading-msg">読み込み中...</div>`;
   } else if(laborTab==="jisseki"){
@@ -477,7 +536,7 @@ function renderLabor(){
     const selSon=SONS.find(s=>s.id===(window._laborSonId||"yota"))||SONS[0];
     const jisseki=laborJisseki[selSon.id];
     const sonBtns=SONS.map(s=>`<button onclick="window._laborSonId='${s.id}';switchLaborTab('jisseki')" style="flex:1;padding:7px 4px;border-radius:10px;border:none;cursor:pointer;font-size:12px;font-weight:700;background:${s.id===selSon.id?s.color:"#F3F4F6"};color:${s.id===selSon.id?"#fff":"#6B7280"}">${s.emoji} ${s.name}</button>`).join("");
- 
+
     // ランク・回数カード
     let rankCard="";
     if(jisseki&&jisseki.jobDetails&&jisseki.jobDetails.length>0){
@@ -492,7 +551,7 @@ function renderLabor(){
         </div>
       </div>`;
     }
- 
+
     // 履歴リスト
     let histList="";
     if(!jisseki||jisseki.records.length===0){
@@ -514,7 +573,7 @@ function renderLabor(){
       }).join("")}</div>`;
     }
     body=`<div style="display:flex;gap:6px;margin-bottom:12px">${sonBtns}</div>${rankCard}${histList}`;
- 
+
   } else {
     // 単価表
     body=`<div class="labor-table">
@@ -530,7 +589,7 @@ function renderLabor(){
       </div>
     </div>`;
   }
- 
+
   return`<div class="page">
     <div style="margin-bottom:14px">
       <div style="font-size:17px;font-weight:900;color:#1a1a1a">🛠️ 労働</div>
@@ -541,9 +600,9 @@ function renderLabor(){
     ${body}
   </div>`;
 }
- 
+
 function switchLaborTab(t){laborTab=t;render();}
- 
+
 function renderRules(){
   return`<div class="page">
     <div style="font-size:17px;font-weight:900;color:#1a1a1a;margin-bottom:14px">🏦 パー銀ルール</div>
@@ -557,7 +616,7 @@ function renderRules(){
     </div>
   </div>`;
 }
- 
+
 navigate("home");
 loadAll();
 </script>
