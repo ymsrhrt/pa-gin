@@ -510,11 +510,13 @@ function drawLine(data,color){
 function renderRanking(){
   // laborDataのみ使用（労働集計シートの純粋な労働金額）
   const rd=SONS.map(s=>({...s,amount:laborData[s.id]||0})).sort((a,b)=>b.amount-a.amount);
+  const _dbg=`[DEBUG] labor: 陽汰¥${laborData.yota} 蒼汰¥${laborData.sota} 涼汰¥${laborData.ryota} 藍汰¥${laborData.aita} / weekly: 涼汰¥${sonData.ryota?.weeklyEarnings??'?'}`;
   const mx=Math.max(...rd.map(d=>d.amount),1);
   const medals=["🥇","🥈","🥉","4️⃣"];
   if(mainLoading||laborLoading)return`<div class="page"><div class="loading-msg">読み込み中...</div></div>`;
   return`<div class="page">
     <div style="margin-bottom:16px"><div style="font-size:17px;font-weight:900;color:#1a1a1a">🏆 今週の労働ランキング</div><div style="font-size:11px;color:#aaa">毎週土曜日に発表！家庭内労働の集計</div></div>
+    <div style="background:#FFF3CD;border:1px solid #FFC107;border-radius:8px;padding:8px 12px;font-size:10px;color:#856404;margin-bottom:10px;word-break:break-all">${_dbg}</div>
     <div class="bar-chart-wrap"><canvas id="barC" style="width:100%;display:block;height:160px"></canvas></div>
     <div class="rank-list">${rd.map((d,i)=>`
       <div class="rank-row ${i===0?"first":""}">
