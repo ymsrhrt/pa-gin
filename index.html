@@ -37,4 +37,159 @@
         .tx-row{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #F3F4F6}
         .tx-date{font-size:12px;font-weight:600;color:#374151}
         .rank-row{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #F3F4F6;border-radius:14px;padding:12px 14px;margin-bottom:8px}
-        .rank-bar-bg{height:5px;background:#E5E7EB;border-radius:3px;margin-top:4px;width:1
+        .rank-bar-bg{height:5px;background:#E5E7EB;border-radius:3px;margin-top:4px;width:100%}
+        .rank-bar-fill{height:100%;border-radius:3px;transition:width 1s ease-out}
+        .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid #E5E7EB;display:flex;z-index:100}
+        .nav-btn{flex:1;padding:11px 0 8px;background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:1px;color:#9CA3AF}
+        .nav-icon{font-size:20px}
+        .nav-label{font-size:9px}
+        .skeleton{background:#E5E7EB;border-radius:18px;height:140px;animation:pulse 1.5s infinite}
+        @keyframes pulse{0%,100%{opacity:.4}50%{opacity:.7}}
+        .labor-price-table{background:#fff;border-radius:16px;overflow:hidden;border:1px solid #E5E7EB;margin-bottom:14px;font-size:12px}
+        .labor-price-row{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr;padding:10px;border-bottom:1px solid #F3F4F6;text-align:center}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-inner">
+            <div>
+                <div class="logo">🏦 <span>パー</span>銀</div>
+                <div class="logo-sub">PAPA BANK · お小遣い管理</div>
+            </div>
+            <div class="total-area">
+                <div class="total-label">総預金残高</div>
+                <div class="total-amt" id="totalAmt">¥0</div>
+                <div class="updated" id="updatedAt"></div>
+            </div>
+        </div>
+    </div>
+    <div class="content" id="content"></div>
+    <div class="bottom-nav">
+        <button class="nav-btn" id="nav-home" onclick="navigate('home')"><span class="nav-icon">🏠</span><span class="nav-label">ホーム</span></button>
+        <button class="nav-btn" id="nav-ranking" onclick="navigate('ranking')"><span class="nav-icon">🏆</span><span class="nav-label">ランキング</span></button>
+        <button class="nav-btn" id="nav-labor" onclick="navigate('labor')"><span class="nav-icon">🛠️</span><span class="nav-label">労働</span></button>
+        <button class="nav-btn" id="nav-rules" onclick="navigate('rules')"><span class="nav-icon">📜</span><span class="nav-label">ルール</span></button>
+        <button class="nav-btn" onclick="loadAll()"><span class="nav-icon">🔄</span><span class="nav-label">更新</span></button>
+    </div>
+    <script>
+        const MAIN_GAS = "https://script.google.com/macros/s/AKfycbx6yYPIDR4UuijPl2QUuQQm1Uv0lNBo3U4_cDIz5vK85oBE2_FHZU-e5WdXiF3RNbUi/exec";
+        const LABOR_GAS = "https://script.google.com/macros/s/AKfycbx93TVTLa9NuBKzr5ZiegRw_62V0zRVEcPq1eZAdCQjI3_fMEEDnqMZFOO-wRXi5BMg/exec";
+        
+        const SONS = [
+            {id:"yota",name:"陽汰",emoji:"🌞",color:"#EF4444",colDate:1,colIncome:2,colWithdraw:3,colBalance:5,rankIdx:1},
+            {id:"sota",name:"蒼汰",emoji:"🩵",color:"#38BDF8",colDate:8,colIncome:9,colWithdraw:10,colBalance:12,rankIdx:2},
+            {id:"ryota",name:"涼汰",emoji:"🍃",color:"#22C55E",colDate:15,colIncome:16,colWithdraw:17,colBalance:18,rankIdx:3}, // 黄→緑に変更
+            {id:"aita",name:"藍汰",emoji:"🌊",color:"#A855F7",colDate:21,colIncome:22,colWithdraw:23,colBalance:24,rankIdx:4}, // 緑→紫に変更
+        ];
+
+        let sonData = {};
+        let laborRankData = {yota:0, sota:0, ryota:0, aita:0};
+        let currentTab = "home";
+        let selectedSon = null;
+        let isLoading = true;
+
+        async function fetchSheet(url, sheetName) {
+            const cb = "callback_" + Math.floor(Math.random() * 1000000);
+            return new Promise((resolve) => {
+                const script = document.createElement("script");
+                window[cb] = (data) => { resolve(data.data); };
+                script.src = `${url}?sheet=${encodeURIComponent(sheetName)}&callback=${cb}`;
+                document.head.appendChild(script);
+            });
+        }
+
+        function parseNum(v) { return v ? Math.round(Number(String(v).replace(/[¥,]/g,""))) : 0; }
+
+        async function loadAll() {
+            isLoading = true; render();
+            try {
+                const rows = await fetchSheet(MAIN_GAS, "パー銀管理");
+                SONS.forEach(son => {
+                    let bal = 0; let txs = [];
+                    rows.slice(2).forEach(r => {
+                        const dStr = String(r[son.colDate] || ""); if (!dStr) return;
+                        const inc = parseNum(r[son.colIncome]);
+                        const wd = parseNum(r[son.colWithdraw]);
+                        const b = parseNum(r[son.colBalance]);
+                        if (b > 0) bal = b;
+                        if (inc > 0 || wd > 0) txs.push({date: dStr.split("T")[0], inc, wd});
+                    });
+                    sonData[son.id] = { balance: bal, txs: txs.reverse() };
+                });
+
+                const laborRows = await fetchSheet(LABOR_GAS, "労働集計");
+                if (laborRows && laborRows.length > 0) {
+                    const validRows = laborRows.filter(r => r[0] !== "" && r[0] !== null);
+                    const lastRow = validRows[validRows.length - 1];
+                    SONS.forEach(son => {
+                        laborRankData[son.id] = parseNum(lastRow[son.rankIdx]);
+                    });
+                }
+
+                const total = Object.values(sonData).reduce((s,d)=>s+d.balance, 0);
+                document.getElementById("totalAmt").textContent = "¥" + total.toLocaleString();
+                document.getElementById("updatedAt").textContent = new Date().toLocaleTimeString() + " 更新";
+            } catch(e) { console.error("エラー:", e); }
+            isLoading = false; render();
+        }
+
+        function navigate(tab) {
+            currentTab = tab;
+            selectedSon = null;
+            const el = document.getElementById("content");
+            document.querySelectorAll(".nav-btn").forEach(b => b.style.color = b.id === "nav-"+tab ? "#F97316" : "#9CA3AF");
+            
+            if (tab === "ranking") {
+                const sorted = [...SONS].sort((a,b) => laborRankData[b.id] - laborRankData[a.id]);
+                const max = Math.max(...sorted.map(s => laborRankData[s.id]), 1);
+                el.innerHTML = `<div style="background:#fff; padding:15px; border-radius:16px; margin-bottom:15px; border:1px solid #E5E7EB"><canvas id="rankChart" height="200"></canvas></div>
+                    ${sorted.map((s,i) => `<div class="rank-row"><span>${["🥇","🥈","🥉","4️⃣"][i]}</span><div style="flex:1"><div style="font-size:12px; font-weight:700">${s.name}</div><div class="rank-bar-bg"><div class="rank-bar-fill" style="width:${(laborRankData[s.id]/max)*100}%; background:${s.color}"></div></div></div><div style="font-weight:900">¥${laborRankData[s.id].toLocaleString()}</div></div>`).join("")}`;
+                setTimeout(drawChart, 100);
+            } else if (tab === "home") {
+                el.innerHTML = `<div class="grid">${SONS.map(s => `<div class="son-card" onclick="selectedSon=SONS.find(x=>x.id==='${s.id}');navigate('detail')" style="border-color:${s.color}20">
+                    <div class="card-bg-emoji">${s.emoji}</div><div class="card-name">${s.emoji} ${s.name}</div>
+                    <div class="card-balance" style="color:${s.color}">¥${sonData[s.id].balance.toLocaleString()}</div>
+                </div>`).join("")}</div>`;
+            } else if (tab === "detail" && selectedSon) {
+                const d = sonData[selectedSon.id];
+                el.innerHTML = `<button class="detail-back" onclick="navigate('home')">← もどる</button>
+                    <div class="detail-card" style="border:2px solid ${selectedSon.color}30">
+                        <div class="detail-header"><div class="detail-avatar" style="background:${selectedSon.color}15">${selectedSon.emoji}</div>
+                            <div><div style="font-weight:900">${selectedSon.name}</div><div class="detail-balance" style="color:${selectedSon.color}">¥${d.balance.toLocaleString()}</div></div>
+                        </div>
+                    </div>
+                    <div class="tx-list">${d.txs.map(t => `<div class="tx-row"><div class="tx-date">${t.date}</div><div style="margin-left:auto; font-weight:700; color:${t.inc>0?"#16A34A":"#DC2626"}">${t.inc>0?"+":"-"}${Math.max(t.inc,t.wd).toLocaleString()}</div></div>`).join("")}</div>`;
+            } else if (tab === "labor") {
+                el.innerHTML = `<div class="labor-price-table"><div class="labor-price-row" style="background:#F9FAFB; font-weight:700"><span>仕事</span><span>見習</span><span>2級</span><span>1級</span><span>SA</span></div>
+                    <div class="labor-price-row"><span>🍽️ 片付</span><span>54</span><span>179</span><span>269</span><span>358</span></div>
+                    <div class="labor-price-row"><span>🫧 皿洗</span><span>18</span><span>60</span><span>90</span><span>120</span></div>
+                    <div class="labor-price-row"><span>🧹 掃除</span><span>12</span><span>40</span><span>60</span><span>80</span></div>
+                    <div class="labor-price-row"><span>⚔️ 討伐</span><span>100</span><span>100</span><span>100</span><span>100</span></div></div>`;
+            } else if (tab === "rules") {
+                el.innerHTML = SONS.map(s => `<div class="rank-row" style="border-left:4px solid ${s.color}">${s.name}: 月利10% / 引出制限 ¥2,000以上</div>`).join("");
+            }
+        }
+
+        function render() { navigate("home"); }
+
+        function drawChart() {
+            const ctx = document.getElementById('rankChart'); if (!ctx) return;
+            new Chart(ctx, { 
+                type: 'bar', 
+                data: { 
+                    labels: SONS.map(s => s.name), 
+                    datasets: [{ 
+                        label: '今週の労働報酬', 
+                        data: SONS.map(s => laborRankData[s.id]), 
+                        backgroundColor: SONS.map(s => s.color + "90"), 
+                        borderColor: SONS.map(s => s.color), 
+                        borderWidth: 1 
+                    }] 
+                }, 
+                options: { scales: { y: { beginAtZero: true } } } 
+            });
+        }
+        loadAll();
+    </script>
+</body>
+</html>
