@@ -73,7 +73,7 @@
     </div>
     <script>
         const MAIN_GAS = "https://script.google.com/macros/s/AKfycbx6yYPIDR4UuijPl2QUuQQm1Uv0lNBo3U4_cDIz5vK85oBE2_FHZU-e5WdXiF3RNbUi/exec";
-        const LABOR_GAS = "https://script.google.com/macros/s/AKfycbw3932ml-jtdNDpSs3oNJaJgp7XuufF0aueRfWB0CzXeJWz69-cTHayHox7MSNLIrs/exec";
+        const LABOR_GAS = "https://script.google.com/macros/s/AKfycbx93TVTLa9NuBKzr5ZiegRw_62V0zRVEcPq1eZAdCQjI3_fMEEDnqMZFOO-wRXi5BMg/exec";
         
         const SONS = [
             {id:"yota",name:"陽汰",emoji:"🌞",color:"#EF4444",colDate:1,colIncome:2,colWithdraw:3,colBalance:5,rankIdx:2},
@@ -103,7 +103,6 @@
         async function loadAll() {
             isLoading = true; render();
             try {
-                // 1. パー銀管理シートから残高・履歴を取得
                 const rows = await fetchSheet(MAIN_GAS, "パー銀管理");
                 SONS.forEach(son => {
                     let bal = 0; let txs = [];
@@ -118,10 +117,8 @@
                     sonData[son.id] = { balance: bal, txs: txs.reverse() };
                 });
 
-                // 2. 息子達マネーの「労働集計」シートからランキング用データを取得
                 const laborRows = await fetchSheet(LABOR_GAS, "労働集計");
                 if (laborRows && laborRows.length > 0) {
-                    // 一番下の行（最新週）のデータを取得
                     const lastRow = laborRows[laborRows.length - 1];
                     SONS.forEach(son => {
                         laborRankData[son.id] = parseNum(lastRow[son.rankIdx]);
@@ -131,7 +128,7 @@
                 const total = Object.values(sonData).reduce((s,d)=>s+d.balance, 0);
                 document.getElementById("totalAmt").textContent = "¥" + total.toLocaleString();
                 document.getElementById("updatedAt").textContent = new Date().toLocaleTimeString() + " 更新";
-            } catch(e) { console.error("データ取得エラー:", e); }
+            } catch(e) { console.error("エラー:", e); }
             isLoading = false; render();
         }
 
@@ -144,7 +141,6 @@
         function render() {
             const el = document.getElementById("content");
             if (isLoading) { el.innerHTML = '<div class="grid"><div class="skeleton"></div><div class="skeleton"></div></div>'; return; }
-            
             if (currentTab === "home") {
                 if (selectedSon) {
                     const d = sonData[selectedSon.id];
