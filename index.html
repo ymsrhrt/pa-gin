@@ -24,75 +24,17 @@
         .content{padding:14px}
         .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
         .son-card{background:#fff;border:2px solid transparent;border-radius:18px;padding:16px 14px;cursor:pointer;position:relative;overflow:hidden;transition:transform 0.15s,box-shadow 0.15s;-webkit-tap-highlight-color:transparent}
+        .son-card:active{transform:scale(0.97)}
         .card-bg-emoji{position:absolute;bottom:-8px;right:-4px;font-size:52px;opacity:0.06;pointer-events:none}
         .card-name{font-size:15px;font-weight:900;color:#1a1a1a;margin-bottom:5px}
         .card-balance{font-size:23px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1;margin-bottom:8px}
+        .detail-back{background:none;border:none;cursor:pointer;font-size:13px;color:#6B7280;margin-bottom:12px;display:flex;align-items:center;gap:4px}
+        .detail-card{background:#fff;border-radius:20px;padding:18px;margin-bottom:12px}
+        .detail-header{display:flex;align-items:center;gap:12px}
+        .detail-avatar{width:54px;height:54px;border-radius:50%;font-size:28px;display:flex;align-items:center;justify-content:center}
+        .detail-balance{font-size:28px;font-weight:900;font-variant-numeric:tabular-nums}
+        .tx-list{border-radius:16px;overflow:hidden;border:1px solid #E5E7EB;background:#fff}
+        .tx-row{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #F3F4F6}
+        .tx-date{font-size:12px;font-weight:600;color:#374151}
         .rank-row{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #F3F4F6;border-radius:14px;padding:12px 14px;margin-bottom:8px}
-        .rank-bar-bg{height:5px;background:#E5E7EB;border-radius:3px;margin-top:4px;width:100%}
-        .rank-bar-fill{height:100%;border-radius:3px;transition:width 1s ease-out}
-        .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:1px solid #E5E7EB;display:flex;z-index:100}
-        .nav-btn{flex:1;padding:11px 0 8px;background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:1px;color:#9CA3AF}
-        .nav-icon{font-size:20px}
-        .nav-label{font-size:9px}
-        .skeleton{background:#E5E7EB;border-radius:18px;height:140px;animation:pulse 1.5s infinite}
-        @keyframes pulse{0%,100%{opacity:.4}50%{opacity:.7}}
-        .labor-price-table{background:#fff;border-radius:16px;overflow:hidden;border:1px solid #E5E7EB;margin-bottom:14px;font-size:12px}
-        .labor-price-row{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr;padding:10px;border-bottom:1px solid #F3F4F6;text-align:center}
-    </style>
-</head>
-<body>
-    <div class="header">
-        <div class="header-inner">
-            <div>
-                <div class="logo">🏦 <span>パー</span>銀</div>
-                <div class="logo-sub">PAPA BANK · お小遣い管理</div>
-            </div>
-            <div class="total-area">
-                <div class="total-label">総預金残高</div>
-                <div class="total-amt" id="totalAmt">¥0</div>
-                <div class="updated" id="updatedAt"></div>
-            </div>
-        </div>
-    </div>
-    <div class="content" id="content"></div>
-    <div class="bottom-nav">
-        <button class="nav-btn" id="nav-home" onclick="navigate('home')"><span class="nav-icon">🏠</span><span class="nav-label">ホーム</span></button>
-        <button class="nav-btn" id="nav-ranking" onclick="navigate('ranking')"><span class="nav-icon">🏆</span><span class="nav-label">ランキング</span></button>
-        <button class="nav-btn" id="nav-labor" onclick="navigate('labor')"><span class="nav-icon">🛠️</span><span class="nav-label">労働</span></button>
-        <button class="nav-btn" id="nav-rules" onclick="navigate('rules')"><span class="nav-icon">📜</span><span class="nav-label">ルール</span></button>
-        <button class="nav-btn" onclick="loadAll()"><span class="nav-icon">🔄</span><span class="nav-label">更新</span></button>
-    </div>
-    <script>
-        const MAIN_GAS = "https://script.google.com/macros/s/AKfycbx6yYPIDR4UuijPl2QUuQQm1Uv0lNBo3U4_cDIz5vK85oBE2_FHZU-e5WdXiF3RNbUi/exec";
-        const LABOR_GAS = "https://script.google.com/macros/s/AKfycbx93TVTLa9NuBKzr5ZiegRw_62V0zRVEcPq1eZAdCQjI3_fMEEDnqMZFOO-wRXi5BMg/exec";
-        
-        const SONS = [
-            {id:"yota",name:"陽汰",emoji:"🌞",color:"#EF4444",colDate:1,colIncome:2,colWithdraw:3,colBalance:5,rankIdx:1},
-            {id:"sota",name:"蒼汰",emoji:"🩵",color:"#38BDF8",colDate:8,colIncome:9,colWithdraw:10,colBalance:12,rankIdx:2},
-            {id:"ryota",name:"涼汰",emoji:"🍃",color:"#EAB308",colDate:15,colIncome:16,colWithdraw:17,colBalance:18,rankIdx:3},
-            {id:"aita",name:"藍汰",emoji:"🌊",color:"#22C55E",colDate:21,colIncome:22,colWithdraw:23,colBalance:24,rankIdx:4},
-        ];
-
-        let sonData = {};
-        let laborRankData = {yota:0, sota:0, ryota:0, aita:0};
-        let isLoading = true;
-
-        async function fetchSheet(url, sheetName) {
-            const cb = "callback_" + Math.floor(Math.random() * 1000000);
-            return new Promise((resolve) => {
-                const script = document.createElement("script");
-                window[cb] = (data) => { resolve(data.data); };
-                script.src = `${url}?sheet=${encodeURIComponent(sheetName)}&callback=${cb}`;
-                document.head.appendChild(script);
-            });
-        }
-
-        function parseNum(v) { return v ? Math.round(Number(String(v).replace(/[¥,]/g,""))) : 0; }
-
-        async function loadAll() {
-            isLoading = true; render();
-            try {
-                const rows = await fetchSheet(MAIN_GAS, "パー銀管理");
-                SONS.forEach(son => {
-                    let bal = 0; let txs = [];
-                    rows.slice(2).forEach(r => {
+        .rank-bar-bg{height:5px;background:#E5E7EB;border-radius:3px;margin-top:4px;width:1
