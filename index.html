@@ -214,21 +214,38 @@ function extractSonData(rows,son){
 }
 
 function extractLaborData(rows){
-  const res={yota:0,sota:0,ryota:0,aita:0};
-  const n2id={"陽汰":"yota","蒼汰":"sota","涼汰":"ryota","藍汰":"aita"};
-  let hi=-1;const cm={};
-  for(let i=0;i<Math.min(rows.length,20);i++){
+  // 労働集計シート構造：行3がヘッダー、C=陽汰(2)、D=蒼汰(3)、E=涼汰(4)、F=藍汰(5)
+  const result={yota:0,sota:0,ryota:0,aita:0};
+  const COL={yota:2,sota:3,ryota:4,aita:5};
+  // 最新の週の合計を探す（最後の行から遡って各人の合計を集計）
+  // 「通番号」が変わるごとに週が変わる→最新の通番号の行だけ合計
+  let latestBan=-1;
+  for(let i=rows.length-1;i>=3;i--){
+    const ban=parseNum(rows[i]?.[1]);
+    if(ban>0){latestBan=ban;break;}
+  }
+  if(latestBan<0){
+    // 通番号なければ単純に各列の最新非ゼロ値を使う
+    for(let i=rows.length-1;i>=3;i--){
+      const r=rows[i]||[];
+      let found=false;
+      for(const[id,col]of Object.entries(COL)){
+        const v=parseNum(r[col]);if(v>0&&result[id]===0){result[id]=v;found=true;}
+      }
+      if(Object.values(result).some(v=>v>0)&&found)break;
+    }
+    return result;
+  }
+  // 最新通番号の行を全部合計
+  for(let i=3;i<rows.length;i++){
     const r=rows[i]||[];
-    for(let j=0;j<r.length;j++){const c=String(r[j]||"").trim();if(n2id[c]){cm[n2id[c]]=j;hi=i;}}
-    if(hi>=0&&Object.keys(cm).length>=2)break;
+    const ban=parseNum(r[1]);
+    if(ban!==latestBan)continue;
+    for(const[id,col]of Object.entries(COL)){
+      result[id]+=parseNum(r[col]);
+    }
   }
-  if(hi<0)return res;
-  for(let i=rows.length-1;i>hi;i--){
-    const r=rows[i]||[];let found=false;
-    for(const[id,col]of Object.entries(cm)){const v=parseNum(r[col]);if(v>0){res[id]=v;found=true;}}
-    if(found)break;
-  }
-  return res;
+  return result;
 }
 
 async function loadMain(){
