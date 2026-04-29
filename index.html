@@ -78,8 +78,8 @@
         const SONS = [
             {id:"yota",name:"陽汰",emoji:"🌞",color:"#EF4444",colDate:1,colIncome:2,colWithdraw:3,colBalance:5,rankIdx:1},
             {id:"sota",name:"蒼汰",emoji:"🩵",color:"#38BDF8",colDate:8,colIncome:9,colWithdraw:10,colBalance:12,rankIdx:2},
-            {id:"ryota",name:"涼汰",emoji:"🍃",color:"#22C55E",colDate:15,colIncome:16,colWithdraw:17,colBalance:18,rankIdx:3}, // 黄→緑に変更
-            {id:"aita",name:"藍汰",emoji:"🌊",color:"#A855F7",colDate:21,colIncome:22,colWithdraw:23,colBalance:24,rankIdx:4}, // 緑→紫に変更
+            {id:"ryota",name:"涼汰",emoji:"🍃",color:"#22C55E",colDate:15,colIncome:16,colWithdraw:17,colBalance:18,rankIdx:3},
+            {id:"aita",name:"藍汰",emoji:"🌊",color:"#A855F7",colDate:21,colIncome:22,colWithdraw:23,colBalance:24,rankIdx:4},
         ];
 
         let sonData = {};
@@ -98,11 +98,17 @@
             });
         }
 
-        function parseNum(v) { return v ? Math.round(Number(String(v).replace(/[¥,]/g,""))) : 0; }
+        function parseNum(v) { 
+            if (!v) return 0;
+            const n = Number(String(v).replace(/[¥,]/g,""));
+            return isNaN(n) ? 0 : Math.round(n);
+        }
 
         async function loadAll() {
-            isLoading = true; render();
+            isLoading = true; 
+            render();
             try {
+                // 残高データの取得
                 const rows = await fetchSheet(MAIN_GAS, "パー銀管理");
                 SONS.forEach(son => {
                     let bal = 0; let txs = [];
@@ -117,79 +123,98 @@
                     sonData[son.id] = { balance: bal, txs: txs.reverse() };
                 });
 
+                // 労働ランキングデータの取得
                 const laborRows = await fetchSheet(LABOR_GAS, "労働集計");
                 if (laborRows && laborRows.length > 0) {
-                    const validRows = laborRows.filter(r => r[0] !== "" && r[0] !== null);
+                    const validRows = laborRows.filter(r => r[0] && r[0] !== "");
                     const lastRow = validRows[validRows.length - 1];
                     SONS.forEach(son => {
                         laborRankData[son.id] = parseNum(lastRow[son.rankIdx]);
                     });
                 }
 
-                const total = Object.values(sonData).reduce((s,d)=>s+d.balance, 0);
+                const total = Object.values(sonData).reduce((s,d)=>s+(d.balance||0), 0);
                 document.getElementById("totalAmt").textContent = "¥" + total.toLocaleString();
                 document.getElementById("updatedAt").textContent = new Date().toLocaleTimeString() + " 更新";
-            } catch(e) { console.error("エラー:", e); }
-            isLoading = false; render();
+            } catch(e) { 
+                console.error("エラー:", e); 
+            }
+            isLoading = false; 
+            render();
         }
 
         function navigate(tab) {
             currentTab = tab;
-            selectedSon = null;
-            const el = document.getElementById("content");
-            document.querySelectorAll(".nav-btn").forEach(b => b.style.color = b.id === "nav-"+tab ? "#F97316" : "#9CA3AF");
+            if (tab !== 'detail') selectedSon = null;
             
-            if (tab === "ranking") {
-                const sorted = [...SONS].sort((a,b) => laborRankData[b.id] - laborRankData[a.id]);
-                const max = Math.max(...sorted.map(s => laborRankData[s.id]), 1);
-                el.innerHTML = `<div style="background:#fff; padding:15px; border-radius:16px; margin-bottom:15px; border:1px solid #E5E7EB"><canvas id="rankChart" height="200"></canvas></div>
-                    ${sorted.map((s,i) => `<div class="rank-row"><span>${["🥇","🥈","🥉","4️⃣"][i]}</span><div style="flex:1"><div style="font-size:12px; font-weight:700">${s.name}</div><div class="rank-bar-bg"><div class="rank-bar-fill" style="width:${(laborRankData[s.id]/max)*100}%; background:${s.color}"></div></div></div><div style="font-weight:900">¥${laborRankData[s.id].toLocaleString()}</div></div>`).join("")}`;
-                setTimeout(drawChart, 100);
-            } else if (tab === "home") {
-                el.innerHTML = `<div class="grid">${SONS.map(s => `<div class="son-card" onclick="selectedSon=SONS.find(x=>x.id==='${s.id}');navigate('detail')" style="border-color:${s.color}20">
-                    <div class="card-bg-emoji">${s.emoji}</div><div class="card-name">${s.emoji} ${s.name}</div>
-                    <div class="card-balance" style="color:${s.color}">¥${sonData[s.id].balance.toLocaleString()}</div>
-                </div>`).join("")}</div>`;
-            } else if (tab === "detail" && selectedSon) {
+            document.querySelectorAll(".nav-btn").forEach(b => {
+                b.style.color = b.id === "nav-"+tab ? "#F97316" : "#9CA3AF";
+            });
+            render();
+        }
+
+        function render() {
+            const el = document.getElementById("content");
+            if (isLoading) {
+                el.innerHTML = '<div class="grid"><div class="skeleton"></div><div class="skeleton"></div></div>';
+                return;
+            }
+
+            if (currentTab === "home") {
+                el.innerHTML = `<div class="grid">${SONS.map(s => `
+                    <div class="son-card" onclick="openDetail('${s.id}')" style="border-color:${s.color}20">
+                        <div class="card-bg-emoji">${s.emoji}</div>
+                        <div class="card-name">${s.emoji} ${s.name}</div>
+                        <div class="card-balance" style="color:${s.color}">¥${(sonData[s.id]?.balance || 0).toLocaleString()}</div>
+                    </div>`).join("")}</div>`;
+            } else if (currentTab === "detail" && selectedSon) {
                 const d = sonData[selectedSon.id];
-                el.innerHTML = `<button class="detail-back" onclick="navigate('home')">← もどる</button>
+                el.innerHTML = `
+                    <button class="detail-back" onclick="navigate('home')">← もどる</button>
                     <div class="detail-card" style="border:2px solid ${selectedSon.color}30">
-                        <div class="detail-header"><div class="detail-avatar" style="background:${selectedSon.color}15">${selectedSon.emoji}</div>
-                            <div><div style="font-weight:900">${selectedSon.name}</div><div class="detail-balance" style="color:${selectedSon.color}">¥${d.balance.toLocaleString()}</div></div>
+                        <div class="detail-header">
+                            <div class="detail-avatar" style="background:${selectedSon.color}15">${selectedSon.emoji}</div>
+                            <div>
+                                <div style="font-weight:900">${selectedSon.name}</div>
+                                <div class="detail-balance" style="color:${selectedSon.color}">¥${(d?.balance || 0).toLocaleString()}</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="tx-list">${d.txs.map(t => `<div class="tx-row"><div class="tx-date">${t.date}</div><div style="margin-left:auto; font-weight:700; color:${t.inc>0?"#16A34A":"#DC2626"}">${t.inc>0?"+":"-"}${Math.max(t.inc,t.wd).toLocaleString()}</div></div>`).join("")}</div>`;
-            } else if (tab === "labor") {
-                el.innerHTML = `<div class="labor-price-table"><div class="labor-price-row" style="background:#F9FAFB; font-weight:700"><span>仕事</span><span>見習</span><span>2級</span><span>1級</span><span>SA</span></div>
-                    <div class="labor-price-row"><span>🍽️ 片付</span><span>54</span><span>179</span><span>269</span><span>358</span></div>
-                    <div class="labor-price-row"><span>🫧 皿洗</span><span>18</span><span>60</span><span>90</span><span>120</span></div>
-                    <div class="labor-price-row"><span>🧹 掃除</span><span>12</span><span>40</span><span>60</span><span>80</span></div>
-                    <div class="labor-price-row"><span>⚔️ 討伐</span><span>100</span><span>100</span><span>100</span><span>100</span></div></div>`;
-            } else if (tab === "rules") {
+                    <div class="tx-list">${(d?.txs || []).map(t => `
+                        <div class="tx-row">
+                            <div class="tx-date">${t.date}</div>
+                            <div style="margin-left:auto; font-weight:700; color:${t.inc>0?"#16A34A":"#DC2626"}">
+                                ${t.inc>0?"+":"-"}${Math.max(t.inc,t.wd).toLocaleString()}
+                            </div>
+                        </div>`).join("")}</div>`;
+            } else if (currentTab === "ranking") {
+                const sorted = [...SONS].sort((a,b) => laborRankData[b.id] - laborRankData[a.id]);
+                const max = Math.max(...Object.values(laborRankData), 1);
+                el.innerHTML = `
+                    <div style="background:#fff; padding:15px; border-radius:16px; margin-bottom:15px; border:1px solid #E5E7EB"><canvas id="rankChart" height="200"></canvas></div>
+                    ${sorted.map((s,i) => `
+                        <div class="rank-row">
+                            <span>${["🥇","🥈","🥉","4️⃣"][i]}</span>
+                            <div style="flex:1">
+                                <div style="font-size:12px; font-weight:700">${s.name}</div>
+                                <div class="rank-bar-bg"><div class="rank-bar-fill" style="width:${(laborRankData[s.id]/max)*100}%; background:${s.color}"></div></div>
+                            </div>
+                            <div style="font-weight:900">¥${laborRankData[s.id].toLocaleString()}</div>
+                        </div>`).join("")}`;
+                setTimeout(drawChart, 100);
+            } else if (currentTab === "labor") {
+                el.innerHTML = `
+                    <div class="labor-price-table">
+                        <div class="labor-price-row" style="background:#F9FAFB; font-weight:700"><span>仕事</span><span>見習</span><span>2級</span><span>1級</span><span>SA</span></div>
+                        <div class="labor-price-row"><span>🍽️ 片付</span><span>54</span><span>179</span><span>269</span><span>358</span></div>
+                        <div class="labor-price-row"><span>🫧 皿洗</span><span>18</span><span>60</span><span>90</span><span>120</span></div>
+                        <div class="labor-price-row"><span>🧹 掃除</span><span>12</span><span>40</span><span>60</span><span>80</span></div>
+                        <div class="labor-price-row"><span>⚔️ 討伐</span><span>100</span><span>100</span><span>100</span><span>100</span></div>
+                    </div>`;
+            } else if (currentTab === "rules") {
                 el.innerHTML = SONS.map(s => `<div class="rank-row" style="border-left:4px solid ${s.color}">${s.name}: 月利10% / 引出制限 ¥2,000以上</div>`).join("");
             }
         }
 
-        function render() { navigate("home"); }
-
-        function drawChart() {
-            const ctx = document.getElementById('rankChart'); if (!ctx) return;
-            new Chart(ctx, { 
-                type: 'bar', 
-                data: { 
-                    labels: SONS.map(s => s.name), 
-                    datasets: [{ 
-                        label: '今週の労働報酬', 
-                        data: SONS.map(s => laborRankData[s.id]), 
-                        backgroundColor: SONS.map(s => s.color + "90"), 
-                        borderColor: SONS.map(s => s.color), 
-                        borderWidth: 1 
-                    }] 
-                }, 
-                options: { scales: { y: { beginAtZero: true } } } 
-            });
-        }
-        loadAll();
-    </script>
-</body>
-</html>
+        function openDetail(id) {
+            selectedSon = SONS.find(s => s.id === id);
