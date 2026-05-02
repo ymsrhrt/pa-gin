@@ -293,24 +293,26 @@ function extractSonData(rows,son){
 
 function extractLaborData(rows){
   // 労働集計シート: A=日付(0), B=週番号(1), C=陽汰(2), D=蒼汰(3), E=涼汰(4), F=藍汰(5)
-  // 3行目(index2)=ヘッダー、4行目(index3)からデータ
+  // ※シートには年末まで日付が事前入力されているため、
+  //   「金額が入っている最新週」を探す
   const res={yota:0,sota:0,ryota:0,aita:0};
   const cols={yota:2,sota:3,ryota:4,aita:5};
 
-  // 最新の週番号を探す（後ろから）
+  // 末尾から「いずれかの列に金額がある」最新週を探す
   let latestWeek=-1;
-  for(let i=rows.length-1;i>=2;i--){
+  for(let i=rows.length-1;i>=3;i--){
     const r=rows[i]||[];
     const wk=parseNum(r[1]);
-    if(wk>0){latestWeek=wk;break;}
+    if(wk<=0)continue;
+    const hasData=Object.values(cols).some(col=>parseNum(r[col])>0);
+    if(hasData){latestWeek=wk;break;}
   }
   if(latestWeek<0)return res;
 
   // 最新週の行だけ合計
-  for(let i=2;i<rows.length;i++){
+  for(let i=3;i<rows.length;i++){
     const r=rows[i]||[];
-    const wk=parseNum(r[1]);
-    if(wk!==latestWeek)continue;
+    if(parseNum(r[1])!==latestWeek)continue;
     for(const[id,col]of Object.entries(cols)){
       const v=parseNum(r[col]);
       if(v>0)res[id]+=v;
