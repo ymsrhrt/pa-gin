@@ -439,7 +439,41 @@ function renderDetail(son){
   const d=sonData[son.id],bal=d?.balance??0,txs=d?.transactions??[];
   const ok=bal>=WMIN,max=ok?Math.floor(bal*WRATIO):0,we=d?.weeklyEarnings??0;
   let body="";
-  if(detailTab==="hist"){
+  if(detailTab==="yearly"){
+    // 年ごとに収入・利息・引き出しを集計（全件対象）
+    const allTxs=[...sonData[son.id]?.transactions??[]].reverse();
+    const yearMap={};
+    allTxs.forEach(tx=>{
+      const y=tx.date?tx.date.slice(0,4):"";
+      if(!y)return;
+      if(!yearMap[y])yearMap[y]={year:y,income:0,profit:0,withdraw:0};
+      yearMap[y].income+=tx.income||0;
+      yearMap[y].profit+=tx.profit||0;
+      yearMap[y].withdraw+=tx.withdraw||0;
+    });
+    const years=Object.values(yearMap).sort((a,b)=>b.year-a.year);
+    body=years.length===0?`<div class="empty">データがありません</div>`:`
+    <div class="tx-list">
+      ${years.map((y,i)=>`
+      <div class="tx-row ${i%2===0?"even":"odd"}">
+        <span class="tx-icon">📅</span>
+        <div class="tx-info">
+          <div class="tx-date" style="font-size:14px;font-weight:900">${y.year}年</div>
+          <div style="display:flex;gap:8px;margin-top:3px;flex-wrap:wrap">
+            ${y.income>0?`<span style="font-size:10px;color:#16A34A;font-weight:700">💰労働+¥${y.income.toLocaleString()}</span>`:""}
+            ${y.profit>0?`<span style="font-size:10px;color:#F59E0B;font-weight:700">📈利息+¥${y.profit.toLocaleString()}</span>`:""}
+            ${y.withdraw>0?`<span style="font-size:10px;color:#DC2626;font-weight:700">💸引出-¥${y.withdraw.toLocaleString()}</span>`:""}
+          </div>
+        </div>
+        <div class="tx-right">
+          <div style="font-size:14px;font-weight:900;color:${son.color};font-variant-numeric:tabular-nums">
+            +¥${(y.income+y.profit).toLocaleString()}
+          </div>
+          <div style="font-size:9px;color:#9CA3AF">収入合計</div>
+        </div>
+      </div>`).join("")}
+    </div>`;
+  }else if(detailTab==="hist"){
     body=txs.length===0?`<div class="empty">データがありません</div>`
     :`<div class="tx-list">${txs.map((tx,i)=>{
       const isInt=tx.profit>0&&tx.income===0&&tx.withdraw===0;
@@ -478,6 +512,7 @@ function renderDetail(son){
     <div class="tab-row">
       <button class="tab-btn" onclick="switchTab('hist')" style="background:${detailTab==="hist"?son.color:"#F3F4F6"};color:${detailTab==="hist"?"#fff":"#6B7280"}">📋 取引履歴</button>
       <button class="tab-btn" onclick="switchTab('chart')" style="background:${detailTab==="chart"?son.color:"#F3F4F6"};color:${detailTab==="chart"?"#fff":"#6B7280"}">📊 残高グラフ</button>
+      <button class="tab-btn" onclick="switchTab('yearly')" style="background:${detailTab==="yearly"?son.color:"#F3F4F6"};color:${detailTab==="yearly"?"#fff":"#6B7280"}">📅 年間</button>
     </div>
     ${body}
   </div>`;
