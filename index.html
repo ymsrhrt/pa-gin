@@ -182,8 +182,8 @@ const GAS_URL = "https://script.google.com/macros/s/AKfycbx6yYPIDR4UuijPl2QUuQQm
 const SONS = [
   {id:"yota",name:"陽汰",kanji:"長男",emoji:"🌞",color:"#EF4444",interestLabel:"月利10%",colDate:1,colIncome:2,colWithdraw:3,colBalance:5,colProfit:6,hasWithdraw:true},
   {id:"sota",name:"蒼汰",kanji:"次男",emoji:"🩵",color:"#38BDF8",interestLabel:"月利10%",colDate:8,colIncome:9,colWithdraw:10,colBalance:12,colProfit:13,hasWithdraw:false},
-  {id:"ryota",name:"涼汰",kanji:"三男",emoji:"🍃",color:"#22C55E",interestLabel:"週利5%+BI¥100",colDate:15,colIncome:16,colWithdraw:17,colBalance:18,colProfit:19,hasWithdraw:false},
-  {id:"aita",name:"藍汰",kanji:"四男",emoji:"🌊",color:"#3B82F6",interestLabel:"週利5%",colDate:21,colIncome:22,colWithdraw:23,colBalance:24,colProfit:25,hasWithdraw:false},
+  {id:"ryota",name:"涼汰",kanji:"三男",emoji:"🍃",color:"#EAB308",interestLabel:"週利5%+BI¥100",colDate:15,colIncome:16,colWithdraw:17,colBalance:18,colProfit:19,hasWithdraw:false},
+  {id:"aita",name:"藍汰",kanji:"四男",emoji:"🌊",color:"#8B5CF6",interestLabel:"週利5%",colDate:21,colIncome:22,colWithdraw:23,colBalance:24,colProfit:25,hasWithdraw:false},
 ];
 
 // 労働単価データ（ランク別）
@@ -214,14 +214,14 @@ const LABOR_RANKS = [
     }
   },
   {
-    id:"ryota", name:"涼汰", emoji:"🍃", color:"#22C55E",
+    id:"ryota", name:"涼汰", emoji:"🍃", color:"#EAB308",
     ranks:{
       "キッチン片づけ":"minarai","食器洗い":"minarai","食器拭き":"1kyu",
       "そうじき":"minarai","ぞうきん":"2kyu","洗濯物片づけ":"minarai","討伐":"minarai"
     }
   },
   {
-    id:"aita", name:"藍汰", emoji:"🌊", color:"#3B82F6",
+    id:"aita", name:"藍汰", emoji:"🌊", color:"#8B5CF6",
     ranks:{
       "キッチン片づけ":"minarai","食器洗い":"minarai","食器拭き":"minarai",
       "そうじき":"minarai","ぞうきん":"minarai","洗濯物片づけ":"minarai","討伐":"minarai"
@@ -440,38 +440,57 @@ function renderDetail(son){
   const ok=bal>=WMIN,max=ok?Math.floor(bal*WRATIO):0,we=d?.weeklyEarnings??0;
   let body="";
   if(detailTab==="yearly"){
-    // 年ごとに収入・利息・引き出しを集計（全件対象）
-    const allTxs=[...sonData[son.id]?.transactions??[]].reverse();
-    const yearMap={};
-    allTxs.forEach(tx=>{
-      const y=tx.date?tx.date.slice(0,4):"";
-      if(!y)return;
-      if(!yearMap[y])yearMap[y]={year:y,income:0,profit:0,withdraw:0};
-      yearMap[y].income+=tx.income||0;
-      yearMap[y].profit+=tx.profit||0;
-      yearMap[y].withdraw+=tx.withdraw||0;
+    // 全メンバーの年間集計
+    const allTxsAll={};
+    SONS.forEach(s=>{
+      const txs=[...sonData[s.id]?.transactions??[]].reverse();
+      allTxsAll[s.id]={};
+      txs.forEach(tx=>{
+        const y=tx.date?tx.date.slice(0,4):"";
+        if(!y)return;
+        if(!allTxsAll[s.id][y])allTxsAll[s.id][y]={income:0,profit:0,withdraw:0};
+        allTxsAll[s.id][y].income+=tx.income||0;
+        allTxsAll[s.id][y].profit+=tx.profit||0;
+        allTxsAll[s.id][y].withdraw+=tx.withdraw||0;
+      });
     });
-    const years=Object.values(yearMap).sort((a,b)=>b.year-a.year);
-    body=years.length===0?`<div class="empty">データがありません</div>`:`
-    <div class="tx-list">
-      ${years.map((y,i)=>`
-      <div class="tx-row ${i%2===0?"even":"odd"}">
-        <span class="tx-icon">📅</span>
-        <div class="tx-info">
-          <div class="tx-date" style="font-size:14px;font-weight:900">${y.year}年</div>
-          <div style="display:flex;gap:8px;margin-top:3px;flex-wrap:wrap">
-            ${y.income>0?`<span style="font-size:10px;color:#16A34A;font-weight:700">💰労働+¥${y.income.toLocaleString()}</span>`:""}
-            ${y.profit>0?`<span style="font-size:10px;color:#F59E0B;font-weight:700">📈利息+¥${y.profit.toLocaleString()}</span>`:""}
-            ${y.withdraw>0?`<span style="font-size:10px;color:#DC2626;font-weight:700">💸引出-¥${y.withdraw.toLocaleString()}</span>`:""}
-          </div>
-        </div>
-        <div class="tx-right">
-          <div style="font-size:14px;font-weight:900;color:${son.color};font-variant-numeric:tabular-nums">
-            +¥${(y.income+y.profit).toLocaleString()}
-          </div>
-          <div style="font-size:9px;color:#9CA3AF">収入合計</div>
-        </div>
-      </div>`).join("")}
+    // 全年のリストを取得
+    const allYears=[...new Set(SONS.flatMap(s=>Object.keys(allTxsAll[s.id]||{})))].sort((a,b)=>b-a);
+    const rows=[];
+    allYears.forEach(y=>{
+      ["income","profit","withdraw"].forEach(type=>{
+        const hasData=SONS.some(s=>(allTxsAll[s.id][y]||{})[type]>0);
+        if(!hasData)return;
+        rows.push({year:y,type});
+      });
+    });
+    const typeLabel={income:"💰 労働収入",profit:"📈 利息",withdraw:"💸 引き出し"};
+    const typeColor={income:"#16A34A",profit:"#F59E0B",withdraw:"#DC2626"};
+    body=rows.length===0?`<div class="empty">データがありません</div>`:`
+    <div style="overflow-x:auto">
+    <table style="width:100%;border-collapse:collapse;font-size:11px;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E5E7EB">
+      <thead>
+        <tr style="background:#F9FAFB">
+          <th style="padding:8px 10px;text-align:left;font-size:10px;color:#6B7280;font-weight:800;white-space:nowrap">年</th>
+          <th style="padding:8px 6px;text-align:left;font-size:10px;color:#6B7280;font-weight:800">項目</th>
+          ${SONS.map(s=>`<th style="padding:8px 6px;text-align:right;font-size:10px;color:${s.color};font-weight:800">${s.emoji}${s.name}</th>`).join("")}
+          <th style="padding:8px 8px;text-align:right;font-size:10px;color:#374151;font-weight:800">合計</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map((row,i)=>{
+          const vals=SONS.map(s=>(allTxsAll[s.id][row.year]||{})[row.type]||0);
+          const total=vals.reduce((a,b)=>a+b,0);
+          const isFirst=i===0||rows[i-1].year!==row.year;
+          return`<tr style="border-top:1px solid #F3F4F6;background:${i%2===0?"#fff":"#FAFAFA"}">
+            <td style="padding:7px 10px;font-weight:${isFirst?"900":"400"};color:${isFirst?"#1a1a1a":"transparent"};font-size:${isFirst?"13px":"11px"};white-space:nowrap">${isFirst?row.year+"年":""}</td>
+            <td style="padding:7px 6px;color:${typeColor[row.type]};font-weight:700;white-space:nowrap">${typeLabel[row.type]}</td>
+            ${vals.map((v,j)=>`<td style="padding:7px 6px;text-align:right;color:${v>0?SONS[j].color:"#D1D5DB"};font-weight:${v>0?"700":"400"};font-variant-numeric:tabular-nums">${v>0?"¥"+v.toLocaleString():"-"}</td>`).join("")}
+            <td style="padding:7px 8px;text-align:right;font-weight:800;color:${typeColor[row.type]};font-variant-numeric:tabular-nums">${total>0?"¥"+total.toLocaleString():"-"}</td>
+          </tr>`;
+        }).join("")}
+      </tbody>
+    </table>
     </div>`;
   }else if(detailTab==="hist"){
     body=txs.length===0?`<div class="empty">データがありません</div>`
@@ -512,7 +531,7 @@ function renderDetail(son){
     <div class="tab-row">
       <button class="tab-btn" onclick="switchTab('hist')" style="background:${detailTab==="hist"?son.color:"#F3F4F6"};color:${detailTab==="hist"?"#fff":"#6B7280"}">📋 取引履歴</button>
       <button class="tab-btn" onclick="switchTab('chart')" style="background:${detailTab==="chart"?son.color:"#F3F4F6"};color:${detailTab==="chart"?"#fff":"#6B7280"}">📊 残高グラフ</button>
-      <button class="tab-btn" onclick="switchTab('yearly')" style="background:${detailTab==="yearly"?son.color:"#F3F4F6"};color:${detailTab==="yearly"?"#fff":"#6B7280"}">📅 年間</button>
+      <button class="tab-btn" onclick="switchTab('yearly')" style="background:${detailTab==="yearly"?son.color:"#F3F4F6"};color:${detailTab==="yearly"?"#fff":"#6B7280"}">📅 年間集計</button>
     </div>
     ${body}
   </div>`;
